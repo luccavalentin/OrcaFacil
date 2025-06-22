@@ -21,6 +21,7 @@
         font-family: "Inter", sans-serif;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
       .glow-effect:hover,
       .glow-effect:focus-within {
@@ -223,6 +224,12 @@
           phone: "",
           email: "",
           logoUrl: "https://placehold.co/150x50/e2e8f0/94a3b8?text=Sua+Logo",
+          cep: "",
+          street: "",
+          number: "",
+          neighborhood: "",
+          city: "",
+          state: "",
         },
         clients: [],
         products: [],
@@ -258,12 +265,14 @@
           if (savedStateJSON) {
             const loadedState = JSON.parse(savedStateJSON);
 
+            // Merge deeply for provider to preserve new fields if they exist in state but not in loadedState
             state = {
               ...state,
               ...loadedState,
               provider: { ...state.provider, ...loadedState.provider },
             };
 
+            // Ensure notes exist for older clients
             state.clients = (loadedState.clients || []).map((client) => ({
               ...client,
               notes: client.notes || "",
@@ -290,6 +299,12 @@
             phone: "",
             email: "",
             logoUrl: "https://placehold.co/150x50/e2e8f0/94a3b8?text=Sua+Logo",
+            cep: "",
+            street: "",
+            number: "",
+            neighborhood: "",
+            city: "",
+            state: "",
           },
           clients: [],
           products: [],
@@ -312,6 +327,74 @@
         if (!dateString) return "N/A";
         const date = new Date(dateString);
         return date.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+      };
+
+      // =================================================================================
+      // CONTROLE DE TEMA (MODO CLARO/ESCURO)
+      // =================================================================================
+      const setTheme = (theme) => {
+        const body = document.body;
+        const darkIcon = document.getElementById("theme-toggle-dark-icon");
+        const lightIcon = document.getElementById("theme-toggle-light-icon");
+        const toggleText = document.getElementById("theme-toggle-text");
+
+        // Seleciona todos os elementos de texto que precisam mudar de cor
+        const textElements = document.querySelectorAll(".theme-sensitive-text");
+
+        if (theme === "light") {
+          // Define o fundo do body e a cor do texto padrão para o modo claro
+          body.classList.remove("bg-slate-900");
+          body.classList.add("bg-slate-100");
+
+          // Altera os ícones e o texto do botão
+          if (darkIcon) darkIcon.classList.add("hidden");
+          if (lightIcon) lightIcon.classList.remove("hidden");
+          if (toggleText) toggleText.textContent = "Modo Escuro";
+
+          // Altera a cor do texto principal
+          textElements.forEach((el) => {
+            el.classList.remove("text-white");
+            el.classList.add("text-slate-900");
+          });
+        } else {
+          // 'dark' theme
+          // Define o fundo do body e a cor do texto padrão para o modo escuro
+          body.classList.remove("bg-slate-100");
+          body.classList.add("bg-slate-900");
+
+          // Altera os ícones e o texto do botão
+          if (darkIcon) darkIcon.classList.remove("hidden");
+          if (lightIcon) lightIcon.classList.add("hidden");
+          if (toggleText) toggleText.textContent = "Modo Claro";
+
+          // Altera a cor do texto principal
+          textElements.forEach((el) => {
+            el.classList.remove("text-slate-900");
+            el.classList.add("text-white");
+          });
+        }
+        localStorage.setItem("theme", theme);
+      };
+
+      const initTheme = () => {
+        const themeToggleBtn = document.getElementById("theme-toggle");
+        if (!themeToggleBtn) return;
+
+        // Tenta obter o tema do sistema do usuário se não houver um salvo
+        const preferDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const savedTheme =
+          localStorage.getItem("theme") || (preferDark ? "dark" : "light");
+
+        // Aplica o tema na carga inicial
+        setTheme(savedTheme);
+
+        themeToggleBtn.addEventListener("click", () => {
+          const currentTheme = localStorage.getItem("theme") || "dark";
+          const newTheme = currentTheme === "dark" ? "light" : "dark";
+          setTheme(newTheme);
+        });
       };
 
       // =================================================================================
@@ -341,6 +424,10 @@
           if (renderFunctions[viewId]) {
             renderFunctions[viewId]();
           }
+
+          // Reaplica o tema atual ao novo conteúdo para garantir a consistência
+          const currentTheme = localStorage.getItem("theme") || "dark";
+          setTheme(currentTheme);
         }
         document.querySelectorAll("#sidebar .nav-link").forEach((link) => {
           link.classList.remove("bg-indigo-600", "text-white");
@@ -461,6 +548,13 @@
                         <a href="#profile-view" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:bg-indigo-600 hover:text-white transition-colors"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> <span>Meu Perfil</span> </a>
                      </div>
                 </nav>
+                <div class="mt-auto pt-4 border-t border-slate-700/50 print-hide">
+                    <button id="theme-toggle" type="button" class="w-full flex items-center justify-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                        <svg id="theme-toggle-dark-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                        <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 14.95l.707-.707a1 1 0 10-1.414-1.414l-.707.707a1 1 0 001.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                        <span id="theme-toggle-text">Modo Claro</span>
+                    </button>
+                </div>
             </div>
         `;
       };
@@ -479,7 +573,7 @@
         ).length;
 
         view.innerHTML = `
-            <h2 class="text-3xl font-bold mb-6 text-white">Painel de Controle</h2>
+            <h2 class="text-3xl font-bold mb-6 text-white theme-sensitive-text">Painel de Controle</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-slate-800 p-6 rounded-xl shadow-lg"> <h5 class="text-sm font-medium text-slate-400">Orçamentos em Aberto</h5> <p class="text-3xl font-bold text-white mt-1">${totalQuotes}</p> </div>
                 <div class="bg-slate-800 p-6 rounded-xl shadow-lg"> <h5 class="text-sm font-medium text-slate-400">Receita (Recibos)</h5> <p class="text-3xl font-bold text-white mt-1">${formatCurrency(
@@ -541,7 +635,7 @@
         );
         view.innerHTML = `
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-3xl font-bold text-white">Histórico</h2>
+                <h2 class="text-3xl font-bold text-white theme-sensitive-text">Histórico</h2>
                 <a href="#new-quote-view" class="nav-link w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> <span>Novo Documento</span> </a>
             </div>
             <div class="bg-slate-800 rounded-xl shadow-lg overflow-hidden">
@@ -654,7 +748,7 @@
         const view = document.getElementById("products-view");
         view.innerHTML = `
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-3xl font-bold text-white">Produtos e Serviços</h2>
+                <h2 class="text-3xl font-bold text-white theme-sensitive-text">Produtos e Serviços</h2>
                 <button id="add-product-btn" class="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> <span>Novo Item</span> </button>
             </div>
             <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -720,7 +814,7 @@
         const view = document.getElementById("clients-view");
         view.innerHTML = `
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-3xl font-bold text-white">Clientes</h2>
+                <h2 class="text-3xl font-bold text-white theme-sensitive-text">Clientes</h2>
                 <button id="add-client-btn" class="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"> <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg> <span>Novo Cliente</span> </button>
             </div>
             <div id="clients-list-container" class="space-y-4">
@@ -743,7 +837,7 @@
             : client.address || "Endereço não informado";
           let docInfo = client.docNumber
             ? `${(client.docType || "doc").toUpperCase()}: ${client.docNumber}`
-            : client.cpfCnpj || "";
+            : ""; // Changed from client.cpfCnpj to client.docNumber based on schema
 
           item.innerHTML = `
                 <div class="flex-1">
@@ -816,7 +910,7 @@
 
         view.innerHTML = `
                 <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                    <h2 class="text-3xl font-bold text-white">Lista de Tarefas</h2>
+                    <h2 class="text-3xl font-bold text-white theme-sensitive-text">Lista de Tarefas</h2>
                     <button id="add-task-btn" class="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                         <span>Nova Tarefa</span>
@@ -931,7 +1025,7 @@
           (c) => c.id === quote.clientId
         );
         view.innerHTML = `
-            <h2 class="text-3xl font-bold text-white mb-6">${
+            <h2 class="text-3xl font-bold text-white mb-6 theme-sensitive-text">${
               isEditing
                 ? `Editando ${
                     quote.type === "receipt" ? "Recibo" : "Orçamento"
@@ -1327,7 +1421,7 @@
         const provider = state.provider;
 
         view.innerHTML = `
-            <h2 class="text-3xl font-bold text-white mb-6">Meu Perfil</h2>
+            <h2 class="text-3xl font-bold text-white mb-6 theme-sensitive-text">Meu Perfil</h2>
             <form id="profile-form" class="bg-slate-800 p-6 sm:p-8 rounded-xl shadow-lg space-y-6">
                 <div class="flex flex-col sm:flex-row items-center gap-6">
                     <div class="relative">
@@ -1368,9 +1462,30 @@
                      <div> <label for="provider-phone" class="block text-sm font-medium mb-1">Telefone</label> <input type="tel" id="provider-phone" value="${
                        provider.phone
                      }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
-                     <div class="md:col-span-2"> <label for="provider-address" class="block text-sm font-medium mb-1">Endereço</label> <input type="text" id="provider-address" value="${
-                       provider.address
-                     }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                     <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-1"> <label for="provider-cep" class="block text-sm font-medium mb-1 text-slate-300">CEP</label> <input type="text" id="provider-cep" value="${
+                          provider.cep || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                     </div>
+                     <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2"> <label for="provider-street" class="block text-sm font-medium mb-1 text-slate-300">Rua</label> <input type="text" id="provider-street" value="${
+                          provider.street || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                        <div> <label for="provider-number" class="block text-sm font-medium mb-1 text-slate-300">Número</label> <input type="text" id="provider-number" value="${
+                          provider.number || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                     </div>
+                     <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div> <label for="provider-neighborhood" class="block text-sm font-medium mb-1 text-slate-300">Bairro</label> <input type="text" id="provider-neighborhood" value="${
+                          provider.neighborhood || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                        <div> <label for="provider-city" class="block text-sm font-medium mb-1 text-slate-300">Cidade</label> <input type="text" id="provider-city" value="${
+                          provider.city || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                        <div> <label for="provider-state" class="block text-sm font-medium mb-1 text-slate-300">Estado (UF)</label> <input type="text" id="provider-state" value="${
+                          provider.state || ""
+                        }" class="w-full bg-slate-700 rounded-lg p-2.5 text-white"> </div>
+                     </div>
                 </div>
 
                 <div class="flex justify-end pt-6 border-t border-slate-700">
@@ -1379,6 +1494,58 @@
             </form>
         `;
         const profileForm = view.querySelector("#profile-form");
+        const providerDocTypeSelect =
+          profileForm.querySelector("#provider-docType");
+        const providerDocNumberInput = profileForm.querySelector(
+          "#provider-docNumber"
+        );
+        const providerPhoneInput = profileForm.querySelector("#provider-phone");
+        const providerCepInput = profileForm.querySelector("#provider-cep");
+
+        const updateProviderDocInputMask = () => {
+          const type = providerDocTypeSelect.value;
+          // Only clear if the type changes to avoid clearing user input mid-typing
+          if (type !== (state.provider.docType || "cnpj")) {
+            providerDocNumberInput.value = "";
+          }
+          if (type === "cpf") {
+            providerDocNumberInput.placeholder = "000.000.000-00";
+            providerDocNumberInput.maxLength = 14;
+          } else {
+            providerDocNumberInput.placeholder = "00.000.000/0001-00";
+            providerDocNumberInput.maxLength = 18;
+          }
+        };
+
+        providerDocTypeSelect.addEventListener(
+          "change",
+          updateProviderDocInputMask
+        );
+        providerDocNumberInput.addEventListener("input", (e) => {
+          e.target.value = maskDocument(
+            e.target.value,
+            providerDocTypeSelect.value
+          );
+        });
+        providerPhoneInput.addEventListener("input", (e) => {
+          e.target.value = maskPhone(e.target.value);
+        });
+        providerCepInput.addEventListener("input", (e) => {
+          e.target.value = maskCep(e.target.value);
+        });
+        providerCepInput.addEventListener("blur", (e) =>
+          fetchAddressByCep(e.target.value, profileForm, "provider")
+        ); // Pass 'provider' to differentiate form fields
+
+        // Apply initial masks on load
+        updateProviderDocInputMask();
+        providerDocNumberInput.value = maskDocument(
+          state.provider.docNumber,
+          state.provider.docType
+        );
+        providerPhoneInput.value = maskPhone(state.provider.phone);
+        providerCepInput.value = maskCep(state.provider.cep);
+
         profileForm.addEventListener("submit", (e) => {
           e.preventDefault();
           state.provider.name =
@@ -1392,8 +1559,29 @@
             profileForm.querySelector("#provider-email").value;
           state.provider.phone =
             profileForm.querySelector("#provider-phone").value;
-          state.provider.address =
-            profileForm.querySelector("#provider-address").value;
+          // Update provider address fields from the form
+          state.provider.cep = profileForm.querySelector("#provider-cep").value;
+          state.provider.street =
+            profileForm.querySelector("#provider-street").value;
+          state.provider.number =
+            profileForm.querySelector("#provider-number").value;
+          state.provider.neighborhood = profileForm.querySelector(
+            "#provider-neighborhood"
+          ).value;
+          state.provider.city =
+            profileForm.querySelector("#provider-city").value;
+          state.provider.state =
+            profileForm.querySelector("#provider-state").value;
+
+          // The 'address' field in provider can be a summary or deprecated if detailed fields are used
+          // For now, let's keep it consistent with the form, if detailed fields are empty, use the generic address
+          if (!state.provider.street) {
+            state.provider.address =
+              profileForm.querySelector("#provider-address").value;
+          } else {
+            state.provider.address = `${state.provider.street}, ${state.provider.number} - ${state.provider.neighborhood}, ${state.provider.city} - ${state.provider.state}`;
+          }
+
           state.provider.logoUrl =
             profileForm.querySelector("#logo-preview").src;
           saveState();
@@ -1419,7 +1607,7 @@
         const view = document.getElementById("reports-view");
         view.innerHTML = `
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                <h2 class="text-3xl font-bold text-white">Central de Relatórios</h2>
+                <h2 class="text-3xl font-bold text-white theme-sensitive-text">Central de Relatórios</h2>
                 <div class="flex items-center gap-2 print-hide">
                     <button id="preview-report-btn" title="Visualizar PDF" class="p-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"> <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> </button>
                     <button id="download-report-btn" title="Baixar PDF" class="p-3 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"> <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> </button>
@@ -2018,7 +2206,161 @@
         }
         let doc = new jsPDF();
         // ... (buildPdfDocument logic remains the same)
-        const filename = `Orçamento_${client.name.replace(/\s/g, "_")}.pdf`;
+        const filename = `${
+          quote.type === "receipt" ? "Recibo" : "Orcamento"
+        }_${client.name.replace(/\s/g, "_")}_${quote.docNumber}.pdf`;
+
+        // Setting font for the entire document for consistency
+        doc.setFont("Inter", "normal");
+
+        // Header
+        doc.setFontSize(16);
+        doc.setTextColor(30, 41, 59); // slate-800
+        doc.text(state.provider.name, 105, 20, { align: "center" });
+
+        doc.setFontSize(10);
+        doc.setTextColor(71, 85, 105); // slate-500
+        const providerAddress = `${state.provider.street}, ${state.provider.number}, ${state.provider.neighborhood}, ${state.provider.city} - ${state.provider.state}, CEP ${state.provider.cep}`;
+        doc.text(providerAddress, 105, 26, { align: "center" });
+        doc.text(
+          `Email: ${state.provider.email} | Telefone: ${state.provider.phone}`,
+          105,
+          32,
+          { align: "center" }
+        );
+
+        // Document Type and Number
+        doc.setFontSize(18);
+        doc.setTextColor(24, 66, 215); // indigo-600
+        const docTypeName = quote.type === "receipt" ? "RECIBO" : "ORÇAMENTO";
+        doc.text(`${docTypeName} #${quote.docNumber}`, 105, 48, {
+          align: "center",
+        });
+
+        // Client and Quote Details
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59); // slate-800
+
+        let y = 60;
+        doc.text("DADOS DO CLIENTE:", 14, y);
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105); // slate-500
+        y += 6;
+        doc.text(`Nome: ${client.name}`, 14, y);
+        y += 5;
+        doc.text(
+          `Documento: ${client.docType.toUpperCase()}: ${client.docNumber}`,
+          14,
+          y
+        );
+        y += 5;
+        doc.text(`Email: ${client.email || "N/A"}`, 14, y);
+        y += 5;
+        doc.text(`Telefone: ${client.phone || "N/A"}`, 14, y);
+        y += 5;
+        doc.text(
+          `Endereço: ${client.street}, ${client.number}, ${client.neighborhood}, ${client.city} - ${client.state}`,
+          14,
+          y
+        );
+
+        y = 60; // Reset y for quote details column
+        doc.setFontSize(10);
+        doc.setTextColor(30, 41, 59); // slate-800
+        doc.text("DADOS DO DOCUMENTO:", 110, y);
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105); // slate-500
+        y += 6;
+        doc.text(`Data de Emissão: ${formatDate(quote.date)}`, 110, y);
+        if (quote.type === "quote") {
+          y += 5;
+          doc.text(
+            `Validade da Proposta: ${formatDate(quote.dueDate)}`,
+            110,
+            y
+          );
+        } else {
+          // Recibo
+          y += 5;
+          doc.text(
+            `Data de Pagamento: ${formatDate(quote.receiptDate || quote.date)}`,
+            110,
+            y
+          );
+        }
+
+        // Items Table
+        y = Math.max(y + 10, 100); // Ensure table starts below previous content, at least at 100
+        const tableColumn = ["Item", "Qtd", "Preço Unit.", "Subtotal"];
+        const tableRows = [];
+        quote.items.forEach((item) => {
+          tableRows.push([
+            item.name,
+            item.quantity,
+            formatCurrency(item.price),
+            formatCurrency(item.quantity * item.price),
+          ]);
+        });
+
+        doc.autoTable({
+          startY: y,
+          head: [tableColumn],
+          body: tableRows,
+          theme: "striped",
+          headStyles: {
+            fillColor: [51, 65, 85],
+            textColor: [255, 255, 255],
+            fontStyle: "bold",
+          }, // slate-700
+          styles: {
+            font: "Inter",
+            fontSize: 9,
+            textColor: [30, 41, 59], // slate-800
+          },
+          columnStyles: {
+            0: { cellWidth: "auto" },
+            1: { cellWidth: 20, halign: "center" },
+            2: { cellWidth: 30, halign: "right" },
+            3: { cellWidth: 30, halign: "right" },
+          },
+          margin: { top: 10, left: 14, right: 14 },
+          didDrawPage: function (data) {
+            // Footer for each page
+            let pageNumber = doc.internal.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text(
+              `Página ${pageNumber}`,
+              data.settings.margin.left,
+              doc.internal.pageSize.height - 10
+            );
+          },
+        });
+
+        // Get the final Y position after the table
+        y = doc.autoTable.previous.finalY;
+
+        // Total
+        doc.setFontSize(12);
+        doc.setTextColor(30, 41, 59);
+        doc.text(
+          `TOTAL: ${formatCurrency(quote.total)}`,
+          doc.internal.pageSize.width - 14,
+          y + 10,
+          { align: "right" }
+        );
+
+        // Notes
+        if (quote.notes) {
+          y += 20;
+          doc.setFontSize(10);
+          doc.setTextColor(30, 41, 59);
+          doc.text("NOTAS:", 14, y);
+          doc.setFontSize(9);
+          doc.setTextColor(71, 85, 105);
+          doc.text(quote.notes, 14, y + 5, { maxWidth: 180 });
+        }
+
         if (action === "preview") doc.output("dataurlnewwindow");
         else doc.save(filename);
       };
@@ -2047,24 +2389,6 @@
       };
 
       const shareText = async (text, title) => {
-        const shareData = { title, text };
-        if (navigator.share) {
-          try {
-            await navigator.share(shareData);
-          } catch (err) {
-            if (err.name === "NotAllowedError") {
-              copyTextToClipboard(text, title);
-            } else if (err.name !== "AbortError") {
-              console.error("Erro ao compartilhar:", err);
-              copyTextToClipboard(text, title);
-            }
-          }
-        } else {
-          copyTextToClipboard(text, title);
-        }
-      };
-
-      const copyTextToClipboard = (text, title) => {
         const modalContainer = document.getElementById("modal-container");
         modalContainer.innerHTML = `
             <div class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -2089,6 +2413,246 @@
           document.execCommand("copy");
           showToast("Texto copiado!", "success");
         });
+      };
+
+      const generateReportPDF = (action = "download") => {
+        const doc = new jsPDF();
+        doc.setFont("Inter", "normal");
+        let yPos = 20;
+
+        const addSectionTitle = (title) => {
+          doc.setFontSize(16);
+          doc.setTextColor(30, 41, 59); // slate-800
+          doc.text(title, 14, yPos);
+          yPos += 10;
+        };
+
+        const addTable = (columns, data, title = "") => {
+          if (title) {
+            addSectionTitle(title);
+            yPos += 5; // Extra space after section title
+          }
+          doc.autoTable({
+            startY: yPos,
+            head: [columns],
+            body: data,
+            theme: "striped",
+            headStyles: {
+              fillColor: [51, 65, 85],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+            },
+            styles: { font: "Inter", fontSize: 9, textColor: [30, 41, 59] },
+            margin: { top: 10, left: 14, right: 14 },
+            didDrawPage: function (data) {
+              let pageNumber = doc.internal.getNumberOfPages();
+              doc.setFontSize(8);
+              doc.setTextColor(100);
+              doc.text(
+                `Página ${pageNumber}`,
+                data.settings.margin.left,
+                doc.internal.pageSize.height - 10
+              );
+            },
+          });
+          yPos = doc.autoTable.previous.finalY + 15; // Update yPos for next content
+        };
+
+        // Financial Report
+        addSectionTitle("Resumo Financeiro");
+        const receipts = state.quotes.filter((q) => q.type === "receipt");
+        const openQuotes = state.quotes.filter((q) => q.type === "quote");
+        const totalRevenue = receipts.reduce((sum, q) => sum + q.total, 0);
+        const totalOpen = openQuotes.reduce((sum, q) => sum + q.total, 0);
+        const averageTicket =
+          receipts.length > 0 ? totalRevenue / receipts.length : 0;
+
+        doc.setFontSize(10);
+        doc.setTextColor(71, 85, 105);
+        doc.text(
+          `Total Faturado (Recibos): ${formatCurrency(totalRevenue)}`,
+          14,
+          yPos
+        );
+        yPos += 7;
+        doc.text(
+          `Total em Aberto (Orçamentos): ${formatCurrency(totalOpen)}`,
+          14,
+          yPos
+        );
+        yPos += 7;
+        doc.text(
+          `Ticket Médio (Recibos): ${formatCurrency(averageTicket)}`,
+          14,
+          yPos
+        );
+        yPos += 15;
+
+        // Documents Report (All documents)
+        doc.addPage();
+        yPos = 20; // Reset Y for new page
+        addSectionTitle("Relatório Completo de Documentos");
+        const allDocuments = [...state.quotes].sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+        if (allDocuments.length > 0) {
+          const docColumns = ["#", "Tipo", "Cliente", "Data", "Valor"];
+          const docRows = allDocuments.map((q) => {
+            const client = state.clients.find((c) => c.id === q.clientId) || {
+              name: "N/A",
+            };
+            return [
+              `#${q.docNumber.toString().padStart(4, "0")}`,
+              q.type === "quote" ? "Orçamento" : "Recibo",
+              client.name,
+              formatDate(q.date),
+              formatCurrency(q.total),
+            ];
+          });
+          addTable(docColumns, docRows);
+        } else {
+          doc.setFontSize(10);
+          doc.setTextColor(71, 85, 105);
+          doc.text("Nenhum documento para este relatório.", 14, yPos);
+          yPos += 15;
+        }
+
+        // Client Sales Report
+        doc.addPage();
+        yPos = 20; // Reset Y for new page
+        addSectionTitle("Vendas por Cliente");
+        const clientSales = {};
+        state.clients.forEach((client) => {
+          clientSales[client.id] = { name: client.name, total: 0 };
+        });
+        state.quotes.forEach((quote) => {
+          if (quote.type === "receipt" && clientSales[quote.clientId])
+            clientSales[quote.clientId].total += quote.total;
+        });
+        const sortedClients = Object.values(clientSales).sort(
+          (a, b) => b.total - a.total
+        );
+        if (sortedClients.length > 0) {
+          const clientSalesColumns = ["Posição", "Cliente", "Total Faturado"];
+          const clientSalesRows = sortedClients.map((client, index) => [
+            index + 1,
+            client.name,
+            formatCurrency(client.total),
+          ]);
+          addTable(clientSalesColumns, clientSalesRows);
+        } else {
+          doc.setFontSize(10);
+          doc.setTextColor(71, 85, 105);
+          doc.text("Nenhuma venda registrada para clientes.", 14, yPos);
+          yPos += 15;
+        }
+
+        // Product Sales Report
+        doc.addPage();
+        yPos = 20; // Reset Y for new page
+        addSectionTitle("Vendas por Produto/Serviço");
+        const productSales = {};
+        state.products.forEach((product) => {
+          productSales[product.id] = {
+            name: product.name,
+            quantity: 0,
+            total: 0,
+          };
+        });
+        state.quotes.forEach((quote) => {
+          if (quote.type === "receipt") {
+            quote.items.forEach((item) => {
+              if (productSales[item.productId]) {
+                productSales[item.productId].quantity += item.quantity;
+                productSales[item.productId].total +=
+                  item.quantity * item.price;
+              }
+            });
+          }
+        });
+        const sortedProducts = Object.values(productSales).sort(
+          (a, b) => b.total - a.total
+        );
+        if (sortedProducts.length > 0) {
+          const productSalesColumns = [
+            "Produto/Serviço",
+            "Qtd. Vendida",
+            "Total Faturado",
+          ];
+          const productSalesRows = sortedProducts.map((product) => [
+            product.name,
+            product.quantity,
+            formatCurrency(product.total),
+          ]);
+          addTable(productSalesColumns, productSalesRows);
+        } else {
+          doc.setFontSize(10);
+          doc.setTextColor(71, 85, 105);
+          doc.text(
+            "Nenhuma venda registrada para produtos/serviços.",
+            14,
+            yPos
+          );
+          yPos += 15;
+        }
+
+        const filename = `Relatorio_OrçaFácil_${
+          new Date().toISOString().split("T")[0]
+        }.pdf`;
+
+        if (action === "preview") doc.output("dataurlnewwindow");
+        else if (action === "download") doc.save(filename);
+        else if (action === "share") {
+          doc.output("dataurlstring", {
+            callback: function (dataUrl) {
+              // This converts dataUrl to Blob, which is sometimes necessary for navigator.share
+              fetch(dataUrl)
+                .then((res) => res.blob())
+                .then((blob) => {
+                  const file = new File([blob], filename, {
+                    type: "application/pdf",
+                  });
+                  if (
+                    navigator.canShare &&
+                    navigator.canShare({ files: [file] })
+                  ) {
+                    navigator
+                      .share({
+                        files: [file],
+                        title: filename,
+                        text: "Relatório OrçaFácil",
+                      })
+                      .catch((error) => {
+                        console.error(
+                          "Erro ao compartilhar o relatório:",
+                          error
+                        );
+                        showToast(
+                          "Não foi possível compartilhar o relatório. Tente baixar e enviar manualmente.",
+                          "error"
+                        );
+                      });
+                  } else {
+                    showToast(
+                      "Seu navegador não suporta compartilhamento de arquivos. O PDF foi baixado.",
+                      "info"
+                    );
+                    doc.save(filename); // Fallback to download
+                  }
+                })
+                .catch((error) => {
+                  console.error(
+                    "Erro ao processar PDF para compartilhamento:",
+                    error
+                  );
+                  showToast(
+                    "Erro ao preparar o relatório para compartilhamento.",
+                    "error"
+                  );
+                });
+            },
+          });
+        }
       };
 
       // =================================================================================
@@ -2127,7 +2691,7 @@
           .replace(/(\d{5})(\d)/, "$1-$2")
           .substr(0, 9);
 
-      const fetchAddressByCep = async (cep, form) => {
+      const fetchAddressByCep = async (cep, form, target = "client") => {
         const cleanCep = (cep || "").replace(/\D/g, "");
         if (cleanCep.length !== 8) return;
         try {
@@ -2140,11 +2704,23 @@
             showToast("CEP não encontrado.", "error");
             return;
           }
-          form.querySelector("#client-street").value = data.logradouro || "";
-          form.querySelector("#client-neighborhood").value = data.bairro || "";
-          form.querySelector("#client-city").value = data.localidade || "";
-          form.querySelector("#client-state").value = data.uf || "";
-          form.querySelector("#client-number").focus();
+
+          if (target === "client") {
+            form.querySelector("#client-street").value = data.logradouro || "";
+            form.querySelector("#client-neighborhood").value =
+              data.bairro || "";
+            form.querySelector("#client-city").value = data.localidade || "";
+            form.querySelector("#client-state").value = data.uf || "";
+            form.querySelector("#client-number").focus();
+          } else if (target === "provider") {
+            form.querySelector("#provider-street").value =
+              data.logradouro || "";
+            form.querySelector("#provider-neighborhood").value =
+              data.bairro || "";
+            form.querySelector("#provider-city").value = data.localidade || "";
+            form.querySelector("#provider-state").value = data.uf || "";
+            form.querySelector("#provider-number").focus();
+          }
         } catch (error) {
           showToast("Erro ao consultar o CEP.", "error");
         }
@@ -2156,6 +2732,7 @@
       const init = () => {
         loadState();
         renderSidebar();
+        initTheme(); // Inicializa o controle do tema
 
         document
           .getElementById("hamburger-btn")
@@ -2186,3 +2763,4 @@
     </script>
   </body>
 </html>
+
